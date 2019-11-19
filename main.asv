@@ -9,14 +9,21 @@ type=2;                                 %type 0/1/2/3/4 -> BPSK/QPSK/16QAM/64QAM
 bits = gen_bits(n,type);                %generate bits
 tx_map=map_mod(bits,n,type);               %Modulation
 val = reshape(tx_map,[u_subcarriers,symbols]);
-tx_grid = ifft(val, subcarriers);
+tx_ifft = ifft(val, subcarriers);
 %tx_ch = reshape(tx_grid,[1,numel(tx_grid)]);
+
+%DMRS addition
+tx_grid = tx_ifft;
+for k = 1:2047
+    tx_grid() = pilot(2*k+1)
+end
 
 %CP_addition
 tx_val = [tx_grid((4096-351):4096,1).' tx_grid(:,1).'];
 for k = 2:14
     tx_val = [tx_val tx_grid((4096-287):4096,k).' tx_grid(:,k).'];
 end
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%Receiver Chain%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

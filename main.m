@@ -1,4 +1,6 @@
 clear all;
+load('pilots.mat');
+load('preamble.mat');
 
 %Tx chain
 subcarriers     = 4096;                 %Total no. of sub-carriers
@@ -9,14 +11,24 @@ type=2;                                 %type 0/1/2/3/4 -> BPSK/QPSK/16QAM/64QAM
 bits = gen_bits(n,type);                %generate bits
 tx_map=map_mod(bits,n,type);               %Modulation
 val = reshape(tx_map,[u_subcarriers,symbols]);
+
+%DMRS addition
+for k = 1:2:3072
+    val(k,3) = pilot1(k);
+    val(k,10)= pilot2(k);
+end
+
 tx_grid = ifft(val, subcarriers);
 %tx_ch = reshape(tx_grid,[1,numel(tx_grid)]);
 
+%Preamble addition
+tx_val = sequence_snc;
 %CP_addition
-tx_val = [tx_grid((4096-351):4096,1).' tx_grid(:,1).'];
+tx_val = [tx_val tx_grid((4096-351):4096,1).' tx_grid(:,1).'];
 for k = 2:14
     tx_val = [tx_val tx_grid((4096-287):4096,k).' tx_grid(:,k).'];
 end
+
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%Receiver Chain%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
