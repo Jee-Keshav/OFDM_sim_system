@@ -2,23 +2,21 @@ clear all;
 load('pilots.mat');
 load('preamble.mat');
 
-tsymbols = 14;
-subcarriers     = 4096;                 %Total no. of sub-carriers
-u_subcarriers   = 3072;                 %No. of useful sub-carriers
-n=u_subcarriers * tsymbols;              %No. of bits in PRB
 dmrs_symbol1 = 2;
 dmrs_symbol2 = 9;
-
-
+tsymbols = 14;
 H_symbol = ones(u_subcarriers,1);       %Initializing H_matrix for a symbol with ones
 
 %%
 %%Tx chain
-
+subcarriers     = 4096;                 %Total no. of sub-carriers
+u_subcarriers   = 3072;                 %No. of useful sub-carriers
+symbols         = 14;
+n=u_subcarriers * symbols;              %No. of bits in PRB
 type=2;                                 %type 0/1/2/3/4 -> BPSK/QPSK/16QAM/64QAM
 bits = gen_bits(n,type);                %generate bits
 tx_map=map_mod(bits,n,type);               %Modulation
-val = reshape(tx_map,[u_subcarriers,tsymbols]);
+val = reshape(tx_map,[u_subcarriers,symbols]);
 
 %%
 %DMRS addition
@@ -52,7 +50,7 @@ for k= 2:14
     rx_cp = [rx_cp rx_val((352+4384*(k-1))+(1:4096))];
 end
 
-rx_grid     = reshape(rx_cp,[subcarriers,tsymbols]);
+rx_grid     = reshape(rx_cp,[subcarriers,symbols]);
 rx_fft      = fft(rx_grid,subcarriers);
 rx_u_val    = rx_fft(1:u_subcarriers,:);
 
@@ -63,31 +61,37 @@ H(1:2:u_subcarriers,dmrs_symbol1+1) = rx_u_val(1:2:u_subcarriers,dmrs_symbol1+1)
 H(1:2:u_subcarriers,dmrs_symbol2+1) = rx_u_val(1:2:u_subcarriers,dmrs_symbol2+1);
 
 for sym=1:dmrs_symbol1
-    H(1:u_subcarriers,sym) = H_symbol;
+    H(u_subcarriers,sym) = H_symbol;
 end
 
-H_symbol(1:2:u_subcarriers)
-for k=2:u_subcarriers-1
-    H_symbol(k-1,1)     = rx_u_val(k-1,dmrs_symbol1+1);
-    H_symbol(k,1)       = (rx_u_val(k-1,dmrs_symbol1+1)+rx_u_val(k+1,dmrs_symbol1+1))/2;
+for k=1:u_subcarriers-1
+    H_symbol(k,1)   = rx_u_val(k
+    H_symbol(k+1,1) = (rx_u_val(k,dmrs_symbol1+1)+rx_u_val(k+2,dmrs_symbol1+1))/2;
 end
-    H_symbol(u_subcarriers,1)     = rx_u_val(u_subcarriers,dmrs_symbol1+1);
+H_symbol(u_subcarriers,1) = 
 
 for sym = dmrs_symbol1+1 : dmrs_symbol2
-    H(1:u_subcarriers,sym) = H_symbol;
+    H(u_subcarriers,sym) = H_symbol;
 end
 
 for k=2:u_subcarriers-1
-    H_symbol(k-1,1)     = rx_u_val(k-1,dmrs_symbol2+1);
     H_symbol(k,1) = (rx_u_val(k-1,dmrs_symbol2+1)+rx_u_val(k+1,dmrs_symbol2+1))/2;
 end
-    H_symbol(u_subcarriers,1)     = rx_u_val(u_subcarriers,dmrs_symbol2+1);
 
 for sym = dmrs_symbol2+1 : tsymbols
-    H(1:u_subcarriers,sym) = H_symbol;
+    H(u_subcarriers,sym) = H_symbol;
 end
 
 
+
+
+
+
+    H(k,dmrs_symbol2+1) = (H(k-1,dmrs_symbol2+1)+H(k+1,dmrs_symbol2+1))/2;
+H(u_subcarriers,dmrs_symbol1+1) = H(u_subcarriers-1,dmrs_symbol1+1);
+H(u_subcarriers,dmrs_symbol2+1) = H(u_subcarriers-1,dmrs_symbol2+1);
+
+H()
 
 
 
