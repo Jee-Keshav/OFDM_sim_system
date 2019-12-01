@@ -1,6 +1,0 @@
-function demap = map_demod(const,n,type)
-switch(type)
-    case 0
-        wlanConstellationDemap(const,0,2^(type+1), 'hard');
-end
-end
