@@ -1,4 +1,4 @@
-function Grid_tx = data_add(Grid_dmrs,type,n_data,n)
+function [bits map Grid_tx] = data_add(Grid_dmrs,type,n_data,n)
 
 %% Generating bits
 if type==0
@@ -21,9 +21,9 @@ switch (type)
 %         for k=1:n
 %            map(k) = (1/sqrt(10))*((1-2*bits(4*k-3))*(2-(1-2*bits(4*k+2-3)))+i*(1-2*bits(4*k+1-3))*(2-(1-2*bits(4*k+3-3))));   
 %         end
-         map = wlanConstellationMap(bits',4);
+         map = wlanConstellationMap(bits.',4);
     otherwise
-        map =wlanConstellationMap(bits',2*type);
+        map =wlanConstellationMap(bits.',2*type);
 end
 
 %% Making grid

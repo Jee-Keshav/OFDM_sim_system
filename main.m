@@ -20,7 +20,7 @@ H_symbol = ones(u_subcarriers,1);       %Initializing H_matrix for a symbol with
 %1 slot
 Grid_in = zeros(u_subcarriers,tsymbols);       %Grid initialization
 Grid_dmrs = dmrs_add(u_subcarriers, Grid_in, dmrs_symbol1, dmrs_symbol2,pilot1,pilot2);       %DMRS addition
-Grid_data = data_add(Grid_dmrs,type,n_data,n);                                  %Transmitter Grid
+[bits map Grid_data] = data_add(Grid_dmrs,type,n_data,n);                                  %Transmitter Grid
 Grid_tx = ifft(Grid_data, subcarriers);
 
 %tx_ch = reshape(tx_grid,[1,numel(tx_grid)]);
@@ -33,61 +33,47 @@ for k = 2:14
     tx_val = [tx_val Grid_tx((4096-287):4096,k).' Grid_tx(:,k).'];
 end
 
-
-
 %% Receiver
 
 rx_val_preamble      = tx_val;
 Ind = 64;
 rx_val = rx_val_preamble(Ind+1:numel(rx_val_preamble));
-%CP_strip
+
+%% CP_strip
 rx_cp = rx_val((1:4096)+352);
 for k= 2:14
     rx_cp = [rx_cp rx_val((352+4384*(k-1))+(1:4096))];
 end
 
+%% fft
 rx_grid     = reshape(rx_cp,[subcarriers,tsymbols]);
 rx_fft      = fft(rx_grid,subcarriers);
 rx_u_val    = rx_fft(1:u_subcarriers,:);
 
-%% Channel Estimation
+%% Channel Estimation and Interpolation
+H = ch_est(H_symbol,rx_u_val,u_subcarriers,dmrs_symbol1,dmrs_symbol2,pilot1,pilot2,tsymbols);
 
-H = zeros(u_subcarriers,tsymbols);
-H(1:2:u_subcarriers,dmrs_symbol1+1) = rx_u_val(1:2:u_subcarriers,dmrs_symbol1+1);
-H(1:2:u_subcarriers,dmrs_symbol2+1) = rx_u_val(1:2:u_subcarriers,dmrs_symbol2+1);
+%% Equalized grid
+rx_eq = rx_u_val./H;
 
-for sym=1:dmrs_symbol1
-    H(1:u_subcarriers,sym) = H_symbol;
+%% Read data
+
+rx_data = rx_eq(1:u_subcarriers,1).';
+
+for k=2:tsymbols
+    if(k==dmrs_symbol1+1)
+        rx_data = [rx_data rx_eq(2:2:u_subcarriers,k).'];
+    elseif(k==dmrs_symbol2+1)
+        rx_data = [rx_data rx_eq(2:2:u_subcarriers,k).'];
+    else
+        rx_data = [rx_data rx_eq(1:u_subcarriers,k).'];
+    end
 end
 
-H_symbol(1:2:u_subcarriers-1,1) = rx_u_val(1:2:u_subcarriers-1,dmrs_symbol1+1)./ pilot1(1:2:u_subcarriers-1,1);
-
-for k=2:2:u_subcarriers-1
-    H_symbol(k,1)       = (H_symbol(k-1,1)+H_symbol(k+1,1))/2;
-end
-    H_symbol(u_subcarriers,1)     = H_symbol(u_subcarriers-1,dmrs_symbol1+1);
-
-for sym = dmrs_symbol1+1 : dmrs_symbol2
-    H(1:u_subcarriers,sym) = H_symbol;
-end
-
-H_symbol(1:2:u_subcarriers-1,1) = rx_u_val(1:2:u_subcarriers-1,dmrs_symbol2+1)./ pilot2(1:2:u_subcarriers-1,1);
-for k=2:2:u_subcarriers-1
-    H_symbol(k,1)       = (H_symbol(k-1,1)+H_symbol(k+1,1))/2;
-end
-    H_symbol(u_subcarriers,1)     = H_symbol(u_subcarriers-1,1);
-
-for sym = dmrs_symbol2+1 : tsymbols
-    H(1:u_subcarriers,sym) = H_symbol;
-end
-
-
-
-
-
-%%
-rx_map = reshape(rx_u_val,[1,numel(rx_u_val)]);
+rx_map = reshape(rx_data,[1,numel(rx_data)]);
 rx_demap_int=map_demod(rx_map,type);
-rx_demap = reshape(rx_demap_int,[1,numel(rx_demap_int)]);
-unique(rx_demap == bits)
+rx_bits = reshape(rx_demap_int,[1,numel(rx_demap_int)]);
+check = rx_bits == bits;
+unique(check)
+c=find(check==0);
 
